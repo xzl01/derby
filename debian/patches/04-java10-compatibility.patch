@@ -1,0 +1,714 @@
+Description: Fixes the build failure with Java 10
+Origin upstream, https://issues.apache.org/jira/secure/attachment/12894599/derby-6974-01-ab-deprecateJDK8.diff
+--- a/java/build/org/apache/derbyBuild/javadoc/DiskLayoutTaglet.java
++++ b/java/build/org/apache/derbyBuild/javadoc/DiskLayoutTaglet.java
+@@ -21,13 +21,26 @@
+ 
+ package org.apache.derbyBuild.javadoc;
+ 
+-import com.sun.tools.doclets.Taglet;
+-import com.sun.javadoc.*;
++import jdk.javadoc.doclet.Taglet;
++import com.sun.source.doctree.DocTree;
++import com.sun.source.doctree.TextTree;
++import com.sun.source.doctree.UnknownBlockTagTree;
++import com.sun.source.doctree.UnknownInlineTagTree;
++import com.sun.source.util.SimpleDocTreeVisitor;
++import java.util.EnumSet;
++import java.util.List;
+ import java.util.Map;
++import java.util.Set;
++import javax.lang.model.element.Element;
+ 
+-public class DiskLayoutTaglet implements Taglet {
+-    private String NAME = "derby.diskLayout";
+-    private String ROWNAME = "Disk Layout";
++public class DiskLayoutTaglet implements Taglet
++{
++    private static final String NAME = "derby.diskLayout";
++    private static final String ROWNAME = "Disk Layout";
++    private static final EnumSet<Location> allowedSet = EnumSet.allOf(Location.class);
++
++    private static final DerbyDocTreeVisitor dummyVisitor = new DerbyDocTreeVisitor();
++  
+     /**
+      * Returns the name of this taglet
+      * @return NAME
+@@ -36,53 +49,10 @@
+         return NAME;
+     }
+ 
+-    /**
+-     * disk_layout not expected to be used in field documentation.
+-     * @return false
+-     */
+-    public boolean inField() {
+-        return false;
+-    }
+-
+-    /**
+-     * disk_layout not expected to be used in constructor documentation.
+-     * @return false
+-     */
+-    public boolean inConstructor() {
+-        return false;
+-    }
+-
+-    /**
+-     * disk_layout not expected to be used in constructor documentation.
+-     * @return false
+-     */
+-    public boolean inMethod() {
+-        return false;
+-    }
+-
+-    /**
+-     * disk_layout can be used in overview documentation.
+-     * @return true
+-     */
+-    public boolean inOverview() {
+-        return true;
+-    }
+-
+-    /**
+-     * disk_layout can be used in package documentation.
+-     * @return true
+-     */
+-    public boolean inPackage() {
+-        return true;
+-    }
+-
+-    /**
+-     * disk_layout can be used in type documentation.
+-     * @return true
+-     */
+-    public boolean inType() {
+-        return true;
+-    }
++    @Override
++    public Set<Taglet.Location> getAllowedLocations() {
++        return allowedSet;
++     }
+ 
+     /**
+      * disk_layout is not an inline tag.
+@@ -93,45 +63,60 @@
+     }
+ 
+     /**
+-     * Register this Taglet.
+-     * @param tagletMap
+-     */
+-    public static void register(Map<String, Taglet> tagletMap) {
+-       DiskLayoutTaglet tag = new DiskLayoutTaglet();
+-       Taglet t = (Taglet) tagletMap.get(tag.getName());
+-       if (t != null) {
+-           tagletMap.remove(tag.getName());
+-       }
+-       tagletMap.put(tag.getName(), tag);
+-    }
+-
+-    /**
+      * Embed the contents of the disk_layout tag as a row
+      * in the disk format table. Close the table.
+      * @param tag The tag to embed to the disk format the table.
+      */
+-    public String toString(Tag tag) {
++    public String toString(DocTree tag) {
+         return "<tr><td>" + ROWNAME + "</td>"
+-               + "<td>" + tag.text() + "</td></tr></table>\n";
++          + "<td>" + getText(tag) + "</td></tr></table>\n";
+     }
+ 
+     /**
+      * Embed multiple disk_layout tags as cells in the disk format table.
+      * Close the table.
+      * @param tags An array of tags to add to the disk format table.
++     * @param element the element to which the enclosing comment belongs
+      */
+-    public String toString(Tag[] tags) {
+-        if (tags.length == 0) {
++    public String toString(List<? extends DocTree> tags, Element element)
++    {
++        if ((tags == null) || (tags.size() == 0)) {
+             return null;
+         }
+         String result = "<tr><td>" + ROWNAME + "</td><td>" ;
+-        for (int i = 0; i < tags.length; i++) {
++        for (int i = 0; i < tags.size(); i++) {
+             if (i > 0) {
+                 result += "";
+             }
+-            result += tags[i].text() + "</td></tr>";
++            result += getText(tags.get(i)) + "</td></tr>";
+         }
+         return result + "</table></dt>\n";
+     }
++
++    static class DerbyDocTreeVisitor extends SimpleDocTreeVisitor<String, Void>
++    {
++        @Override
++        public String visitUnknownBlockTag(UnknownBlockTagTree node, Void p)
++        {
++            for (DocTree dt : node.getContent()) { return dt.accept(this, null); }
++            return "";
++        }
++
++        @Override
++        public String visitUnknownInlineTag(UnknownInlineTagTree node, Void p)
++        {
++            for (DocTree dt : node.getContent()) { return dt.accept(this, null); }
++            return "";
++        }
++
++        @Override
++        public String visitText(TextTree node, Void p) { return node.getBody(); }
++
++        @Override
++        protected String defaultAction(DocTree node, Void p) { return ""; }
++    }
++
++    static String getText(DocTree dt) { return dummyVisitor.visit(dt, null); }
++
+ }
+ 
+--- a/java/build/org/apache/derbyBuild/javadoc/EndFormatTaglet.java
++++ b/java/build/org/apache/derbyBuild/javadoc/EndFormatTaglet.java
+@@ -20,109 +20,53 @@
+  */
+ package org.apache.derbyBuild.javadoc;
+ 
+-import com.sun.tools.doclets.Taglet;
+-import com.sun.javadoc.*;
++import jdk.javadoc.doclet.Taglet;
++import com.sun.source.doctree.DocTree;
++import java.util.EnumSet;
++import java.util.List;
+ import java.util.Map;
++import java.util.Set;
++import javax.lang.model.element.Element;
+ 
+ public class EndFormatTaglet implements Taglet {
+-    private String NAME = "derby.endFormat";
+-    private String ROWNAME = "end_format";
++    private static final String NAME = "derby.endFormat";
++    private static final String ROWNAME = "end_format";
++    private static final EnumSet<Location> allowedSet = EnumSet.allOf(Location.class);
+ 
+     /**
+      * Returns the name of this taglet
+      * @return NAME
+      */
+-    public String getName() {
+-        return NAME;
+-    }
+-
+-    /**
+-     * end_format not expected to be used in field documentation.
+-     * @return false
+-     */
+-    public boolean inField() {
+-        return false;
+-    }
+-
+-    /**
+-     * end_format not expected to be used in constructor documentation.
+-     * @return false
+-     */
+-    public boolean inConstructor() {
+-        return false;
+-    }
+-
+-    /**
+-     * end_format not expected to be used in method documentation.
+-     * @return false
+-     */
+-    public boolean inMethod() {
+-        return false;
+-    }
++    public String getName() { return NAME; }
+ 
+-    /**
+-     * end_format can be used in overview documentation.
+-     * @return true
+-     */
+-    public boolean inOverview() {
+-        return true;
+-    }
+-
+-    /**
+-     * end_format can be used in package documentation.
+-     * @return true
+-     */
+-    public boolean inPackage() {
+-        return true;
+-    }
+-
+-    /**
+-     * end_format can be used in type documentation.
+-     * @return true
+-     */
+-    public boolean inType() {
+-        return true;
+-    }
++    @Override
++    public Set<Taglet.Location> getAllowedLocations() { return allowedSet; }
+ 
+     /**
+      * end_format is not an inline tag.
+      * @return false
+      */
+-    public boolean isInlineTag() {
+-        return false;
+-    }
+-
+-    /**
+-     * Register this Taglet.
+-     * @param tagletMap
+-     */
+-    public static void register(Map<String, Taglet> tagletMap) {
+-       EndFormatTaglet tag = new EndFormatTaglet();
+-       Taglet t = (Taglet) tagletMap.get(tag.getName());
+-       if (t != null) {
+-           tagletMap.remove(tag.getName());
+-       }
+-       tagletMap.put(tag.getName(), tag);
+-    }
++    public boolean isInlineTag() { return false; }
+ 
+     /**
+      * No-op. Not currently used.
+      * @param tag The tag to embed to the disk format table.
+      */
+-    public String toString(Tag tag) {
++    public String toString(DocTree tag) {
+         return "";
+     }
+ 
+     /**
+      * No-op. Not currently used.
+      * @param tags An array of tags to add to the disk format table.
++     * @param element the element to which the enclosing comment belongs
+      */
+-    public String toString(Tag[] tags) {
+-        if (tags.length == 0) {
+-            return null;
+-        }
++    public String toString(List<? extends DocTree> tags, Element element)
++    {
++        if ((tags == null) || (tags.size() == 0)) { return null; }
++        
+         String result = "";
+-        for (int i = 0; i < tags.length; i++) {
++        for (int i = 0; i < tags.size(); i++) {
+             if (i > 0) {
+                 result += "";
+             }
+--- a/java/build/org/apache/derbyBuild/javadoc/FormatIdTaglet.java
++++ b/java/build/org/apache/derbyBuild/javadoc/FormatIdTaglet.java
+@@ -20,71 +20,28 @@
+  */
+ package org.apache.derbyBuild.javadoc;
+ 
+-import com.sun.tools.doclets.Taglet;
+-import com.sun.javadoc.*;
++import jdk.javadoc.doclet.Taglet;
++import com.sun.source.doctree.DocTree;
++import java.util.EnumSet;
++import java.util.List;
+ import java.util.Map;
++import java.util.Set;
++import javax.lang.model.element.Element;
+ 
+ public class FormatIdTaglet implements Taglet {
+ 
+-    private String NAME = "derby.formatId";
+-    private String ROWNAME = "Format ID";
++    private static final String NAME = "derby.formatId";
++    private static final String ROWNAME = "Format ID";
++    private static final EnumSet<Location> allowedSet = EnumSet.allOf(Location.class);
+ 
+     /**
+      * Returns the name of this taglet
+      * @return NAME
+      */
+-    public String getName() {
+-        return NAME;
+-    }
++    public String getName() { return NAME; }
+ 
+-    /**
+-     * format_id not expected to be used in field documentation.
+-     * @return false
+-     */
+-    public boolean inField() {
+-        return false;
+-    }
+-
+-
+-    /**
+-     * format_id not expected to be used in constructor documentation.
+-     * @return false
+-     */
+-    public boolean inConstructor() {
+-        return false;
+-    }
+-
+-    /**
+-     * format_id not expected to be used in method documentation.
+-     * @return false
+-     */
+-    public boolean inMethod() {
+-        return false;
+-    }
+-
+-    /**
+-     * format_id can be used in overview documentation.
+-     * @return true
+-     */
+-    public boolean inOverview() {
+-        return true;
+-    }
+-
+-    /**
+-     * format_id can be used in package documentation.
+-     * @return true
+-     */
+-    public boolean inPackage() {
+-        return true;
+-    }
+-
+-    /**
+-     * format_id can be used in type documentation.
+-     * @return true
+-     */
+-    public boolean inType() {
+-        return true;
+-    }
++    @Override
++    public Set<Taglet.Location> getAllowedLocations() { return allowedSet; }
+ 
+     /**
+      * format_id is not an inline tag.
+@@ -95,42 +52,31 @@
+     }
+ 
+     /**
+-     * Register this Taglet.
+-     * @param tagletMap
+-     */
+-    public static void register(Map<String, Taglet> tagletMap) {
+-       FormatIdTaglet tag = new FormatIdTaglet();
+-       Taglet t = (Taglet) tagletMap.get(tag.getName());
+-       if (t != null) {
+-           tagletMap.remove(tag.getName());
+-       }
+-       tagletMap.put(tag.getName(), tag);
+-    }
+-
+-    /**
+      * Embed the contents of the format_id tag as a row
+      * in the disk format table.
+      * @param tag The tag to embed to the disk format the table.
+      */
+-    public String toString(Tag tag) {
++    public String toString(DocTree tag) {
+         return "\n<dt><table cellpadding=2 cellspacing=2><tr><td>" + ROWNAME + "</td>"
+-               + "<td>" + tag.text() + "</td></tr>\n";
++          + "<td>" + DiskLayoutTaglet.getText(tag) + "</td></tr>\n";
+     }
+ 
+     /**
+      * Embed multiple format_id tags as cells in the disk format table.
+      * @param tags An array of tags to add to the disk format table.
++     * @param element the element to which the enclosing comment belongs
+      */
+-    public String toString(Tag[] tags) {
+-        if (tags.length == 0) {
++    public String toString(List<? extends DocTree> tags, Element element)
++    {
++        if ((tags == null) || (tags.size() == 0)) {
+             return null;
+         }
+         String result = "<table cellpadding=2 cellspacing=2><tr><td>" + ROWNAME + "</td><td>" ;
+-        for (int i = 0; i < tags.length; i++) {
++        for (int i = 0; i < tags.size(); i++) {
+             if (i > 0) {
+                 result += "";
+             }
+-            result += tags[i].text() + "</td></tr>";
++            result += DiskLayoutTaglet.getText(tags.get(i)) + "</td></tr>";
+         }
+         return result + "\n";
+     }
+--- a/java/build/org/apache/derbyBuild/javadoc/PurposeTaglet.java
++++ b/java/build/org/apache/derbyBuild/javadoc/PurposeTaglet.java
+@@ -20,70 +20,28 @@
+  */
+ package org.apache.derbyBuild.javadoc;
+ 
+-import com.sun.tools.doclets.Taglet;
+-import com.sun.javadoc.*;
++import jdk.javadoc.doclet.Taglet;
++import com.sun.source.doctree.DocTree;
++import java.util.EnumSet;
++import java.util.List;
+ import java.util.Map;
++import java.util.Set;
++import javax.lang.model.element.Element;
+ 
+ public class PurposeTaglet implements Taglet {
+ 
+-    private String NAME = "derby.purpose";
+-    private String ROWNAME = "Purpose";
++    private static final String NAME = "derby.purpose";
++    private static final String ROWNAME = "Purpose";
++    private static final EnumSet<Location> allowedSet = EnumSet.allOf(Location.class);
+ 
+     /**
+      * Returns the name of this taglet
+      * @return NAME
+      */
+-    public String getName() {
+-        return NAME;
+-    }
+-
+-    /**
+-     * purpose not expected to be used in field documentation.
+-     * @return false
+-     */
+-    public boolean inField() {
+-        return false;
+-    }
+-
+-    /**
+-     * purpose not expected to be used in constructor documentation.
+-     * @return false
+-     */
+-    public boolean inConstructor() {
+-        return false;
+-    }
+-
+-    /**
+-     * purpose not expected to be used in method documentation.
+-     * @return false
+-     */
+-    public boolean inMethod() {
+-        return false;
+-    }
++    public String getName() { return NAME; }
+ 
+-    /**
+-     * purpose can be used in overview documentation.
+-     * @return true
+-     */
+-    public boolean inOverview() {
+-        return true;
+-    }
+-
+-    /**
+-     * purpose can be used in package documentation.
+-     * @return true
+-     */
+-    public boolean inPackage() {
+-        return true;
+-    }
+-
+-    /**
+-     * purpose can be used in type documentation.
+-     * @return true
+-     */
+-    public boolean inType() {
+-        return true;
+-    }
++    @Override
++    public Set<Taglet.Location> getAllowedLocations() { return allowedSet; }
+ 
+     /**
+      * purpose is not an inline tag.
+@@ -94,42 +52,31 @@
+     }
+ 
+     /**
+-     * Register this Taglet.
+-     * @param tagletMap
+-     */
+-    public static void register(Map<String, Taglet> tagletMap) {
+-       PurposeTaglet tag = new PurposeTaglet();
+-       Taglet t = (Taglet) tagletMap.get(tag.getName());
+-       if (t != null) {
+-           tagletMap.remove(tag.getName());
+-       }
+-       tagletMap.put(tag.getName(), tag);
+-    }
+-
+-    /**
+      * Embed the contents of the purpose tag as a row
+      * in the disk format table.
+      * @param tag The tag to embed to the disk format the table.
+      */
+-    public String toString(Tag tag) {
++    public String toString(DocTree tag) {
+         return "<tr><td>" + ROWNAME + "</td>"
+-               + "<td>" + tag.text() + "</td></tr>\n";
++          + "<td>" + DiskLayoutTaglet.getText(tag) + "</td></tr>\n";
+     }
+ 
+     /**
+      * Embed multiple purpose tags as cells in the disk format table.
+      * @param tags An array of tags to add to the disk format table.
++     * @param element the element to which the enclosing comment belongs
+      */
+-    public String toString(Tag[] tags) {
+-        if (tags.length == 0) {
++    public String toString(List<? extends DocTree> tags, Element element)
++    {
++        if ((tags == null) || (tags.size() == 0)) {
+             return null;
+         }
+         String result = "<tr><td>" + ROWNAME + "</td><td>";
+-        for (int i = 0; i < tags.length; i++) {
++        for (int i = 0; i < tags.size(); i++) {
+             if (i > 0) {
+                 result += "";
+             }
+-            result += tags[i].text() + "</td></tr>";
++            result += "<tr><td>" + DiskLayoutTaglet.getText(tags.get(i)) + "</td></tr>";
+         }
+         return result + "\n";
+     }
+--- a/java/build/org/apache/derbyBuild/javadoc/UpgradeTaglet.java
++++ b/java/build/org/apache/derbyBuild/javadoc/UpgradeTaglet.java
+@@ -21,69 +21,27 @@
+ 
+ package org.apache.derbyBuild.javadoc;
+ 
+-import com.sun.tools.doclets.Taglet;
+-import com.sun.javadoc.*;
++import jdk.javadoc.doclet.Taglet;
++import com.sun.source.doctree.DocTree;
++import java.util.EnumSet;
++import java.util.List;
+ import java.util.Map;
++import java.util.Set;
++import javax.lang.model.element.Element;
+ 
+ public class UpgradeTaglet implements Taglet {
+-    private String NAME = "derby.upgrade";
+-    private String ROWNAME = "Upgrade";
++    private static final String NAME = "derby.upgrade";
++    private static final String ROWNAME = "Upgrade";
++    private static final EnumSet<Location> allowedSet = EnumSet.allOf(Location.class);
+ 
+     /**
+      * Returns the name of this taglet
+      * @return NAME
+      */
+-    public String getName() {
+-        return NAME;
+-    }
+-
+-    /**
+-     * upgrade not expected to be used in field documentation.
+-     * @return false
+-     */
+-    public boolean inField() {
+-        return false;
+-    }
+-
+-    /**
+-     * upgrade not expected to be used in constructor documentation.
+-     * @return false
+-     */
+-    public boolean inConstructor() {
+-        return false;
+-    }
+-
+-    /**
+-     * upgrade not expected to be used in method documentation.
+-     * @return false
+-     */
+-    public boolean inMethod() {
+-        return false;
+-    }
++    public String getName() { return NAME; }
+ 
+-    /**
+-     * upgrade can be used in overview documentation.
+-     * @return true
+-     */
+-    public boolean inOverview() {
+-        return true;
+-    }
+-
+-    /**
+-     * upgrade can be used in package documentation.
+-     * @return true
+-     */
+-    public boolean inPackage() {
+-        return true;
+-    }
+-
+-    /**
+-     * upgrade can be used in type documentation.
+-     * @return true
+-     */
+-    public boolean inType() {
+-        return true;
+-    }
++    @Override
++    public Set<Taglet.Location> getAllowedLocations() { return allowedSet; }
+ 
+     /**
+      * upgrade is not an inline tag.
+@@ -94,42 +52,31 @@
+     }
+ 
+     /**
+-     * Register this Taglet.
+-     * @param tagletMap
+-     */
+-    public static void register(Map<String, Taglet> tagletMap) {
+-       UpgradeTaglet tag = new UpgradeTaglet();
+-       Taglet t = (Taglet) tagletMap.get(tag.getName());
+-       if (t != null) {
+-           tagletMap.remove(tag.getName());
+-       }
+-       tagletMap.put(tag.getName(), tag);
+-    }
+-
+-    /**
+      * Embed the contents of the upgrade tag as a row
+      * in the disk format table.
+      * @param tag The tag to embed to the disk format the table.
+      */
+-    public String toString(Tag tag) {
++    public String toString(DocTree tag) {
+         return "<tr><td>" + ROWNAME + "</td>"
+-               + "<td>" + tag.text() + "</td></tr>\n";
++          + "<td>" + DiskLayoutTaglet.getText(tag) + "</td></tr>\n";
+     }
+ 
+     /**
+      * Embed multiple upgrade tags as cells in the disk format table.
+      * @param tags An array of tags to add to the disk format table.
++     * @param element the element to which the enclosing comment belongs
+      */
+-    public String toString(Tag[] tags) {
+-        if (tags.length == 0) {
++    public String toString(List<? extends DocTree> tags, Element element)
++    {
++        if ((tags == null) || (tags.size() == 0)) {
+             return null;
+         }
+         String result = "<tr><td>" + ROWNAME + "</td><td>";
+-        for (int i = 0; i < tags.length; i++) {
++        for (int i = 0; i < tags.size(); i++) {
+             if (i > 0) {
+                 result += "";
+             }
+-            result += tags[i].text() + "</td></tr>";
++            result += "<tr><td>" + DiskLayoutTaglet.getText(tags.get(i)) + "</td></tr>";
+         }
+         return result + "\n";
+     }

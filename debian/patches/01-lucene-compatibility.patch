@@ -1,0 +1,28 @@
+Description: Fixes the compatibility with the version of Lucene in Debian
+Author: Emmanuel Bourg
+Forwarded: no
+--- a/java/optional/org/apache/derby/optional/api/LuceneUtils.java
++++ b/java/optional/org/apache/derby/optional/api/LuceneUtils.java
+@@ -109,21 +109,7 @@
+     @SuppressWarnings("deprecation")
+     public  static  Version currentVersion()
+     {
+-        Version retval = null;
+-
+-        // the current version is the highest one
+-        for ( Version current : Version.values() )
+-        {
+-            if ( current == Version.LUCENE_CURRENT ) { continue; }
+-            
+-            if ( retval == null ) { retval = current; }
+-            else
+-            {
+-                if ( current.onOrAfter( retval ) ) { retval = current; }
+-            }
+-        }
+-        
+-        return retval;
++        return Version.LUCENE_CURRENT;
+     }
+ 
+     /**

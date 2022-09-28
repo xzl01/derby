@@ -1,0 +1,84 @@
+#!/usr/bin/make -f
+
+# DH_VERBOSE := 1
+
+# Try to convince ant not to connect to the network
+export ANT_OPTS=-Dhttp.proxyHost=127.0.0.1 -Dhttp.proxyPort=8888 -Duser.home=`pwd`/debian -Djunit.url=file:/usr/share/java/junit.jar
+
+pkg := $(shell dpkg-parsechangelog | sed -n 's/^Source: //p')
+version=$(shell dpkg-parsechangelog -ldebian/changelog | grep Version: | cut -f2 -d' ' | sed 's/[-+].*//' )
+
+# debian: bullseye - transitioning
+JSON_SIMPLE_VERSION = $(shell dpkg -l libjson-simple-java | grep '^ii' | awk '{print $$3}')
+JSON_SIMPLE_3 = $(shell dpkg --compare-versions '$(JSON_SIMPLE_VERSION)' '>' '3.1.1-1~' && echo yes || echo no)
+ifeq (yes,$(JSON_SIMPLE_3))
+JSON_SIMPLE_PACKAGE = com.github.cliftonlabs.json_simple
+else
+JSON_SIMPLE_PACKAGE = org.json.simple
+endif
+
+%:
+	dh $@
+
+override_dh_auto_clean:
+	mh_clean
+	ant clobber
+	# Totally remove jars and javadoc directory
+	rm -rf jars javadoc tools/java/*
+	# Other bits
+	rm -f *.log
+	rm -Rf packageListLoc*
+	cd java/demo/toursdb/ ; rm -rf *generated*
+	find . -type f -name \*.java.json-simple \
+	  -exec sh -c 'file={} && mv $$file $${file%.json-simple}' \; -print
+
+	
+override_dh_auto_build:
+	@# debian: bullseye - transitioning
+	find . -type f -name \*.java -exec grep -q '@JSON_SIMPLE@' {} \; \
+	  -exec sed -i.json-simple \
+		    -e 's,@JSON_SIMPLE@,$(JSON_SIMPLE_PACKAGE),' \
+		    {} \; -print
+
+	#Put .jar files in place
+	mkdir -p tools/java
+	cat /usr/share/java/oro.jar > tools/java/jakarta-oro-2.0.8.jar
+	cat /usr/share/java/javacc4.jar > tools/java/javacc.jar
+	cat /usr/share/java/junit.jar > tools/java/junit.jar
+	cat /usr/share/java/lucene-core-4.10.4.jar             > tools/java/lucene-core.jar
+	cat /usr/share/java/lucene-analyzers-common-4.10.4.jar > tools/java/lucene-analyzers-common.jar
+	cat /usr/share/java/lucene-queryparser-4.10.4.jar      > tools/java/lucene-queryparser.jar
+
+	ant buildsource buildjars binscripts javadoc -Djson_simple=/usr/share/java/json-simple.jar
+
+override_dh_installdocs:
+	rm -Rf javadoc/testing
+	dh_installdocs
+
+override_dh_auto_test:
+	env CLASSPATH=`echo jars/insane/*.jar | tr ' ' ':'` \
+	    java org.apache.derby.tools.sysinfo
+	ant all -Djson_simple=/usr/share/java/json-simple.jar
+
+override_dh_compress:
+	# Disable the compression of the individual files in the documentation package
+	dh_compress -pderby-doc -X .java -X .xml -X .txt -X .sql
+	dh_compress -Nderby-doc
+
+override_dh_auto_install:
+	mh_install -plibderbyclient-java -e$(version)
+	
+	mh_install -plibderby-java -e$(version)
+	dh_installchangelogs -plibderby-java RELEASE-NOTES.html
+	
+	mh_install -pderby-tools -e$(version)
+	mkdir -p debian/derby-tools/usr/share/derby
+	install -m 755 debian/wrappers/ij                   debian/derby-tools/usr/share/derby
+	install -m 755 debian/wrappers/dblook               debian/derby-tools/usr/share/derby
+	install -m 755 debian/wrappers/sysinfo              debian/derby-tools/usr/share/derby
+	install -m 755 debian/wrappers/NetworkServerControl debian/derby-tools/usr/share/derby
+	install -m 755 debian/wrappers/PlanExporter         debian/derby-tools/usr/share/derby
+	install -m 755 debian/wrappers/SignatureChecker     debian/derby-tools/usr/share/derby
+	dh_link -pderby-tools usr/share/derby/ij                   usr/bin/ij
+	dh_link -pderby-tools usr/share/derby/dblook               usr/bin/dblook
+	dh_link -pderby-tools usr/share/derby/NetworkServerControl usr/bin/derbyctl	

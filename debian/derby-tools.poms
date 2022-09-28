@@ -1,0 +1,1 @@
+maven2/tools/pom.xml --no-parent --java-lib --artifact=jars/insane/derbytools.jar --dest-jar=usr/share/java/derbytools.jar

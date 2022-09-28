@@ -1,0 +1,101 @@
+Source: derby
+Section: java
+Priority: optional
+Maintainer: Debian Java Maintainers <pkg-java-maintainers@lists.alioth.debian.org>
+Uploaders:
+ Tim Booth <tbooth@ceh.ac.uk>,
+ Emmanuel Bourg <ebourg@apache.org>
+Build-Depends:
+ ant (>= 1.7),
+ debhelper-compat (= 13),
+ default-jdk,
+ javacc4,
+ junit,
+ libjson-simple-java,
+ liblucene4.10-java,
+ liboro-java,
+ libservlet3.1-java,
+ maven-repo-helper
+Standards-Version: 4.5.0
+Vcs-Git: https://salsa.debian.org/java-team/derby.git
+Vcs-Browser: https://salsa.debian.org/java-team/derby
+Homepage: https://db.apache.org/derby/
+Rules-Requires-Root: no
+
+Package: libderbyclient-java
+Architecture: all
+Depends: ${misc:Depends}
+Suggests: derby-doc, derby-tools
+Description: Apache Derby Client JDBC Driver
+ The Derby network client provides network connectivity to the Derby Network
+ Server. It is distributed as an additional jar file, derbyclient.jar, with an
+ entirely independent code base from the embedded driver.
+ .
+ The Derby network client is a type 4, JDBC compliant Driver, which attempts
+ to match the Derby Embedded JDBC driver as much as possible.
+ .
+ The Derby Network Server is provided by the derby-core package.
+
+Package: libderby-java
+Architecture: all
+Depends: ${misc:Depends}
+Suggests: derby-doc
+Description: Apache Derby Database Engine and Embedded JDBC Driver
+ Apache Derby is an open source relational database implemented entirely
+ in Java.
+  * Derby has a small footprint -- about 2.6 megabytes for the base engine and
+    embedded JDBC driver.
+  * Derby is based on the Java, JDBC, and SQL standards.
+  * Derby provides an embedded JDBC driver that lets you embed Derby in any
+    Java-based solution.
+  * Derby also supports the more familiar client/server mode with the Derby
+    Network Client JDBC driver and Derby Network Server.
+  * Derby is easy to install, deploy, and use.
+ .
+ This package includes the database server, the embedded JDBC driver and
+ localisations.
+
+Package: derby-tools
+Architecture: all
+Depends:
+ default-jre | java6-runtime-headless,
+ java-wrappers,
+ libderby-java,
+ libderbyclient-java,
+ ${misc:Depends}
+Description: Apache Derby Tools
+ The Derby tools and utilities are a set of routines supplied with Derby
+ that are typically used to create, inspect, and update a Derby database.
+ .
+ These tools and utilities include:
+  * NetworkServerControl, provides the ability to start a Network Server or
+    connect to a running Network Server to shutdown, configure or retrieve
+    diagnostic information.
+  * ij, the Derby's interactive JDBC scripting tool. It is a simple utility
+    for running scripts against a Derby database. You can also use it
+    interactively to run ad hoc queries. ij provides several commands for ease
+    in accessing a variety of JDBC features.
+    ij can be used in an embedded or a client/server environment.
+  * sysinfo, provides information about your version of Derby and your
+    environment.
+  * dblook, the Derby's Data Definition Language (DDL) Generation Utility,
+    more informally called a schema dump tool. It is a simple utility that
+    dumps the DDL of a user-specified database to either a console or a file.
+    The generated DDL can then be used for such things as recreating all or
+    parts of a database, viewing a subset of a database's objects (for example,
+    those which pertain to specific tables and schemas), or documenting
+    a database's schema.
+  * SignatureChecker, a tool that identifies any SQL functions and procedures
+    in a database that do not follow the SQL Standard argument matching rules.
+  * PlanExporter, a tool to export query plan data for further analysis.
+
+Package: derby-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}
+Description: Apache Derby API documentation and examples
+ Apache Derby is an open source relational database implemented entirely
+ in Java.
+ .
+ This package contains a Javadoc documenting the API and demo software
+ for Apache Derby.

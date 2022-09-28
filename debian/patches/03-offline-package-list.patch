@@ -1,0 +1,11 @@
+Description: configure local.properties to prevent the publishedapi
+ target from attempting to download these files at build-time.
+ This is currently hard-coded from openjdk-8.
+Author: tony mancill <tmancill@debian.org>
+Forwarded: not-needed
+
+--- /dev/null
++++ b/local.properties
+@@ -0,0 +1,2 @@
++javasedoc.local=debian/javase-8-api
++j2eedoc.local=debian/javaee-7-api

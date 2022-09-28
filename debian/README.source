@@ -1,0 +1,21 @@
+Apache Derby for Debian
+-----------------------
+
+Documentation is in the download but needs DITA to compile it
+http://prdownloads.sourceforge.net/dita-ot/DITA-OT1.1.2.1_bin-ASL.zip?download
+and apparently it has to be this specific version and no other.
+I could package this, or I could shove it into the tarball, but neither is
+much fun.
+
+By default, the Derby build will download the Java API package-list files
+directly from Oracle.  In order to allow building from the source package
+without network access, these package-list files were retrived from the
+following URLs:
+
+ - http://docs.oracle.com/javaee/7/api/package-list
+ - http://docs.oracle.com/javase/8/docs/api/package-list
+
+and are included in the source package as:
+
+ - debian/javaee-7-api/package-list
+ - debian/javase-8-api/package-list

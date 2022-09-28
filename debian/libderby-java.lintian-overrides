@@ -1,0 +1,2 @@
+# The localisation jars contain only .properties files and no classes
+libderby-java binary: codeless-jar usr/share/java/derbyLocale*.jar

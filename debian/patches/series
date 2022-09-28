@@ -1,0 +1,5 @@
+01-lucene-compatibility.patch
+02-skip-jardriftcheck.patch
+03-offline-package-list.patch
+04-java10-compatibility.patch
+json-simple-3.patch

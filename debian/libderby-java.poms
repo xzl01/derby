@@ -1,0 +1,15 @@
+maven2/engine/pom.xml --no-parent --java-lib --artifact=jars/insane/derby.jar    --dest-jar=usr/share/java/derby.jar
+maven2/net/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbynet.jar --dest-jar=usr/share/java/derbynet.jar
+maven2/derbyLocale_cs/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_cs.jar
+maven2/derbyLocale_de_DE/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyLocale_de_DE.jar
+maven2/derbyLocale_es/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_es.jar
+maven2/derbyLocale_fr/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_fr.jar
+maven2/derbyLocale_hu/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_hu.jar
+maven2/derbyLocale_it/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_it.jar
+maven2/derbyLocale_ja_JP/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyLocale_ja_JP.jar
+maven2/derbyLocale_ko_KR/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyLocale_ko_KR.jar
+maven2/derbyLocale_pl/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_pl.jar
+maven2/derbyLocale_pt_BR/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyLocale_pt_BR.jar
+maven2/derbyLocale_ru/pom.xml    --no-parent --java-lib --artifact=jars/insane/derbyLocale_ru.jar
+maven2/derbyLocale_zh_CN/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyLocale_zh_CN.jar
+maven2/derbyLocale_zh_TW/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyLocale_zh_TW.jar

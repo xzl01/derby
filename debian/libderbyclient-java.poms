@@ -1,0 +1,1 @@
+maven2/client/pom.xml --no-parent --java-lib --artifact=jars/insane/derbyclient.jar --dest-jar=usr/share/java/derbyclient.jar

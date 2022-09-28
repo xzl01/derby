@@ -1,0 +1,504 @@
+Index: derby-10.14.2.0/java/optional/org/apache/derby/optional/api/SimpleJsonUtils.java
+===================================================================
+--- derby-10.14.2.0.orig/java/optional/org/apache/derby/optional/api/SimpleJsonUtils.java
++++ derby-10.14.2.0/java/optional/org/apache/derby/optional/api/SimpleJsonUtils.java
+@@ -42,9 +42,9 @@ import java.sql.ResultSet;
+ import java.sql.ResultSetMetaData;
+ import java.sql.SQLException;
+ 
+-import org.json.simple.JSONArray;
+-import org.json.simple.JSONObject;
+-import org.json.simple.parser.JSONParser;
++import @JSON_SIMPLE@.JsonArray;
++import @JSON_SIMPLE@.JsonObject;
++import @JSON_SIMPLE@.Jsoner;
+ 
+ import org.apache.derby.iapi.types.HarmonySerialClob;
+ import org.apache.derby.iapi.util.StringUtil;
+@@ -77,9 +77,9 @@ public abstract class SimpleJsonUtils
+ 
+     /**
+      * <p>
+-     * Pack a ResultSet into a JSONArray. This method could be called
++     * Pack a ResultSet into a JsonArray. This method could be called
+      * client-side on any query result from any DBMS. Each row is
+-     * converted into a JSONObject whose keys are the corresponding
++     * converted into a JsonObject whose keys are the corresponding
+      * column names from the ResultSet.
+      * Closes the ResultSet once it has been drained. Datatypes map
+      * to JSON values as follows:
+@@ -98,17 +98,17 @@ public abstract class SimpleJsonUtils
+      * </ul>
+      */
+     @SuppressWarnings("unchecked")
+-    public  static  JSONArray   toJSON( ResultSet rs )
++    public  static  JsonArray   toJSON( ResultSet rs )
+         throws SQLException
+     {
+         ResultSetMetaData   rsmd = rs.getMetaData();
+         int                 columnCount = rsmd.getColumnCount();
+-        JSONArray           result = new JSONArray();
++        JsonArray           result = new JsonArray();
+ 
+         try {
+             while( rs.next() )
+             {
+-                JSONObject  row = new JSONObject();
++                JsonObject  row = new JsonObject();
+ 
+                 for ( int i = 1; i <= columnCount; i++ )
+                 {
+@@ -133,34 +133,32 @@ public abstract class SimpleJsonUtils
+     }
+ 
+     /**
+-     * Construct a JSONArray from a Reader.
++     * Construct a JsonArray from a Reader.
+      */
+-    public static JSONArray readArray( Reader reader )
++    public static JsonArray readArray( Reader reader )
+         throws SQLException
+     {
+-        JSONParser  parser = new JSONParser();
+-        
+         Object  obj = null;
+         try {
+-            obj = parser.parse( reader );
++            obj = Jsoner.deserialize( reader );
+         }
+         catch( Throwable t) { throw ToolUtilities.wrap( t ); }
+ 
+-        if ( (obj == null) || !(obj instanceof JSONArray) )
++        if ( (obj == null) || !(obj instanceof JsonArray) )
+         {
+             throw new SQLException( "Document is not a JSON array." );
+         }
+ 
+-        return (JSONArray) obj;
++        return (JsonArray) obj;
+     }
+ 
+     /**
+      * <p>
+-     * SQL FUNCTION to convert a JSON document string into a JSONArray.
++     * SQL FUNCTION to convert a JSON document string into a JsonArray.
+      * This function is registered by the simpleJson optional tool.
+      * </p>
+      */
+-    public  static  JSONArray   readArrayFromString( String document )
++    public  static  JsonArray   readArrayFromString( String document )
+         throws SQLException
+     {
+         if ( document == null ) { document = ""; }
+@@ -169,10 +167,10 @@ public abstract class SimpleJsonUtils
+     }
+ 
+     /**
+-     * Read a JSONArray from an InputStream. Close the stream
+-     * after reading the JSONArray.
++     * Read a JsonArray from an InputStream. Close the stream
++     * after reading the JsonArray.
+      */
+-    public static JSONArray readArrayFromStream
++    public static JsonArray readArrayFromStream
+         ( InputStream inputStream, String characterSetName )
+         throws SQLException
+     {
+@@ -190,10 +188,10 @@ public abstract class SimpleJsonUtils
+     }
+ 
+     /**
+-     * SQL FUNCTION to read a JSONArray from a File. This function
++     * SQL FUNCTION to read a JsonArray from a File. This function
+      * is registered by the simpleJson optional tool.
+      */
+-    public static JSONArray readArrayFromFile
++    public static JsonArray readArrayFromFile
+         ( String fileName, String characterSetName )
+         throws SQLException
+     {
+@@ -217,10 +215,10 @@ public abstract class SimpleJsonUtils
+     }
+ 
+     /**
+-     * SQL FUNCTION to read a JSONArray from an URL address.
++     * SQL FUNCTION to read a JsonArray from an URL address.
+      * This function is registered by the simpleJson optional tool.
+      */
+-    public static JSONArray readArrayFromURL
++    public static JsonArray readArrayFromURL
+         ( String urlString, String characterSetName )
+         throws SQLException
+     {
+@@ -245,12 +243,12 @@ public abstract class SimpleJsonUtils
+     }
+ 
+     /**
+-     * SQL FUNCTION to convert a JSONArray into a CLOB.
++     * SQL FUNCTION to convert a JsonArray into a CLOB.
+      */
+-    public static Clob arrayToClob( JSONArray array )
++    public static Clob arrayToClob( JsonArray array )
+     {
+         if ( array == null ) { return null; }
+-        else { return new HarmonySerialClob( array.toJSONString() ); }
++        else { return new HarmonySerialClob( Jsoner.serialize(array) ); }
+     }
+ 
+     /////////////////////////////////////////////////////////////////
+@@ -273,8 +271,8 @@ public abstract class SimpleJsonUtils
+             (obj instanceof Double) ||
+             (obj instanceof Boolean) ||
+             (obj instanceof String) ||
+-            (obj instanceof JSONObject) ||
+-            (obj instanceof JSONArray)
++            (obj instanceof JsonObject) ||
++            (obj instanceof JsonArray)
+             )
+         {
+             return obj;
+Index: derby-10.14.2.0/java/optional/org/apache/derby/optional/api/SimpleJsonVTI.java
+===================================================================
+--- derby-10.14.2.0.orig/java/optional/org/apache/derby/optional/api/SimpleJsonVTI.java
++++ derby-10.14.2.0/java/optional/org/apache/derby/optional/api/SimpleJsonVTI.java
+@@ -28,8 +28,8 @@ import java.sql.DriverManager;
+ import java.sql.SQLException;
+ import java.sql.SQLWarning;
+ 
+-import org.json.simple.JSONArray;
+-import org.json.simple.JSONObject;
++import @JSON_SIMPLE@.JsonArray;
++import @JSON_SIMPLE@.JsonObject;
+ 
+ import org.apache.derby.vti.VTITemplate;
+ 
+@@ -38,7 +38,7 @@ import org.apache.derby.optional.utils.T
+ /**
+  * <p>
+  * This is a table function which turns a JSON array into a relational
+- * ResultSet. This table function relies on the JSON.simple JSONArray class
++ * ResultSet. This table function relies on the JSON.simple JsonArray class
+  * found at https://code.google.com/p/json-simple/.
+  * Each object in the array is turned into a row.
+  * The shape of the row is declared by the CREATE FUNCTION ddl
+@@ -61,8 +61,8 @@ import org.apache.derby.optional.utils.T
+  * </ul>
+  *
+  * <p>
+- * This table function relies on the JSONArray type loaded by the simpleJson optional
+- * tool. This table function can be combined with other JSONArray-creating
++ * This table function relies on the JsonArray type loaded by the simpleJson optional
++ * tool. This table function can be combined with other JsonArray-creating
+  * functions provided by that tool.
+  * </p>
+  *
+@@ -74,7 +74,7 @@ import org.apache.derby.optional.utils.T
+  * <pre>
+  * call syscs_util.syscs_register_tool( 'simpleJson', true );
+  *
+- * create function thermostatReadings( jsonDocument JSONArray )
++ * create function thermostatReadings( jsonDocument JsonArray )
+  * returns table
+  * (
+  *   "id" int,
+@@ -136,9 +136,9 @@ public class SimpleJsonVTI extends VTITe
+     //
+     ////////////////////////////////////////////////////////////////////////
+ 
+-    private JSONArray   _topArray = null;
++    private JsonArray   _topArray = null;
+     private int         _nextIdx = 0;
+-    private JSONObject  _currentRow = null;
++    private JsonObject  _currentRow = null;
+     private boolean     _wasNull = true;
+ 
+     private Connection  _connection;
+@@ -152,12 +152,12 @@ public class SimpleJsonVTI extends VTITe
+     ////////////////////////////////////////////////////////////////////////
+ 
+     /**
+-     * Construct from a JSONArray object.
++     * Construct from a JsonArray object.
+      */
+-    private SimpleJsonVTI( JSONArray array )
++    private SimpleJsonVTI( JsonArray array )
+         throws SQLException
+     {
+-        _topArray = (JSONArray) array;
++        _topArray = (JsonArray) array;
+         _connection = DriverManager.getConnection( "jdbc:default:connection" );
+     }
+ 
+@@ -169,10 +169,10 @@ public class SimpleJsonVTI extends VTITe
+ 
+     /**
+      * <p>
+-     * Create a SimpleJsonVTI from a JSONArray object.
++     * Create a SimpleJsonVTI from a JsonArray object.
+      * </p>
+      */
+-    public  static  SimpleJsonVTI   readArray( JSONArray array )
++    public  static  SimpleJsonVTI   readArray( JsonArray array )
+         throws SQLException
+     {
+         return new SimpleJsonVTI( array );
+@@ -201,7 +201,7 @@ public class SimpleJsonVTI extends VTITe
+ 
+         Object obj = _topArray.get( _nextIdx );
+ 
+-        if ( (obj == null) || !(obj instanceof JSONObject) )
++        if ( (obj == null) || !(obj instanceof JsonObject) )
+         {
+             _currentRow = null;
+             String  cellType = (obj == null) ? "NULL" : obj.getClass().getName();
+@@ -209,7 +209,7 @@ public class SimpleJsonVTI extends VTITe
+         }
+         else
+         {
+-            _currentRow = (JSONObject) obj;
++            _currentRow = (JsonObject) obj;
+         }
+ 
+         _nextIdx++;
+Index: derby-10.14.2.0/java/optional/org/apache/derby/optional/json/SimpleJsonTool.java
+===================================================================
+--- derby-10.14.2.0.orig/java/optional/org/apache/derby/optional/json/SimpleJsonTool.java
++++ derby-10.14.2.0/java/optional/org/apache/derby/optional/json/SimpleJsonTool.java
+@@ -28,7 +28,7 @@ import java.sql.PreparedStatement;
+ import java.sql.ResultSet;
+ import java.sql.SQLException;
+ 
+-import org.json.simple.JSONArray;
++import @JSON_SIMPLE@.JsonArray;
+ 
+ import org.apache.derby.iapi.sql.dictionary.OptionalTool;
+ import org.apache.derby.iapi.tools.i18n.LocalizedResource;
+@@ -45,16 +45,16 @@ import org.apache.derby.optional.utils.T
+  * </p>
+  *
+  * <ul>
+- * <li><b>JSONArray</b> - A UDT bound to the JSON.simple JSONArray class.</li>
++ * <li><b>JsonArray</b> - A UDT bound to the JSON.simple JsonArray class.</li>
+  * <li><b>toJSON</b> - A function for packaging up query results as a
+- * JSONArray. Each cell in the array is a row. Each row
++ * JsonArray. Each cell in the array is a row. Each row
+  * has key/value pairs for all columns returned by the query.</li>
+  * <li><b>readArrayFromString</b> - A function which turns a JSON document
+- * string into a JSONArray.</li>
++ * string into a JsonArray.</li>
+  * <li><b>readArrayFromFile</b> - A function which reads a file containing a
+- * JSON document and turns it into a JSONArray.</li>
++ * JSON document and turns it into a JsonArray.</li>
+  * <li><b>readArrayFromURL</b> - A function which reads a JSON document from an
+- * URL address and turns it into a JSONArray.</li>
++ * URL address and turns it into a JsonArray.</li>
+  * </ul>
+  */
+ public	class   SimpleJsonTool  implements OptionalTool
+@@ -74,7 +74,7 @@ public	class   SimpleJsonTool  implement
+             "\n(" +
+             "\n\tqueryString varchar( 32672 )," +
+             "\n\tqueryArgs varchar( 32672 ) ..." +
+-            "\n)\nreturns JSONArray\n" +
++            "\n)\nreturns JsonArray\n" +
+             "\nlanguage java parameter style derby reads sql data" +
+             "\nexternal name 'org.apache.derby.optional.json.SimpleJsonTool.toJSON'\n"
+         ),
+@@ -83,7 +83,7 @@ public	class   SimpleJsonTool  implement
+         (
+             "readArrayFromString",
+             "create function readArrayFromString( document varchar( 32672 ) )\n" +
+-            "returns JSONArray\n" +
++            "returns JsonArray\n" +
+             "language java parameter style java contains sql\n" +
+             "external name 'org.apache.derby.optional.api.SimpleJsonUtils.readArrayFromString'\n"
+         ),
+@@ -93,7 +93,7 @@ public	class   SimpleJsonTool  implement
+             "readArrayFromFile",
+             "create function readArrayFromFile\n" +
+             "( fileName varchar( 32672 ), characterSetName varchar( 100 ) )\n" +
+-            "returns JSONArray\n" +
++            "returns JsonArray\n" +
+             "language java parameter style java contains sql\n" +
+             "external name 'org.apache.derby.optional.api.SimpleJsonUtils.readArrayFromFile'\n"
+         ),
+@@ -103,7 +103,7 @@ public	class   SimpleJsonTool  implement
+             "readArrayFromURL",
+             "create function readArrayFromURL\n" +
+             "( urlString varchar( 32672 ), characterSetName varchar( 100 ) )\n" +
+-            "returns JSONArray\n" +
++            "returns JsonArray\n" +
+             "language java parameter style java contains sql\n" +
+             "external name 'org.apache.derby.optional.api.SimpleJsonUtils.readArrayFromURL'\n"
+         ),
+@@ -111,7 +111,7 @@ public	class   SimpleJsonTool  implement
+         new FunctionDescriptor
+         (
+             "arrayToClob",
+-            "create function arrayToClob( jsonDocument JSONArray ) returns clob\n" +
++            "create function arrayToClob( jsonDocument JsonArray ) returns clob\n" +
+             "language java parameter style java no sql\n" +
+             "external name 'org.apache.derby.optional.api.SimpleJsonUtils.arrayToClob'"
+         ),
+@@ -152,8 +152,8 @@ public	class   SimpleJsonTool  implement
+ 
+     /**
+      * <p>
+-     * Binds a UDT to JSONArray and creates a function to turn a query result
+-     * into a JSONArray. There are no parameters to this method.
++     * Binds a UDT to JsonArray and creates a function to turn a query result
++     * into a JsonArray. There are no parameters to this method.
+      * </p>
+      */
+     public  void    loadTool( String... configurationParameters )
+@@ -178,7 +178,7 @@ public	class   SimpleJsonTool  implement
+      */
+     private void    grantPermissions( Connection conn )  throws SQLException
+     {
+-        executeDDL( conn, "grant usage on type JSONArray to public" );
++        executeDDL( conn, "grant usage on type JsonArray to public" );
+ 
+         for ( FunctionDescriptor desc : _functionDescriptors )
+         {
+@@ -215,11 +215,11 @@ public	class   SimpleJsonTool  implement
+     /**
+      * <p>
+      * Compile a query (with optional ? parameters) and pack the results
+-     * into a JSONArray. This is the entry point which the simpleJson
++     * into a JsonArray. This is the entry point which the simpleJson
+      * tool binds to the function name "toJSON".
+      * </p>
+      */
+-    public  static  JSONArray   toJSON
++    public  static  JsonArray   toJSON
+         (
+          String queryString,
+          String... queryArgs
+@@ -267,7 +267,7 @@ public	class   SimpleJsonTool  implement
+         throws SQLException
+     {
+         String  createString =
+-            "create type JSONArray external name 'org.json.simple.JSONArray' language java";
++            "create type JsonArray external name '@JSON_SIMPLE@.JsonArray' language java";
+         
+         executeDDL( derbyConn, createString );
+     }
+@@ -279,7 +279,7 @@ public	class   SimpleJsonTool  implement
+         throws SQLException
+     {
+         String  createString =
+-            "drop type JSONArray restrict";
++            "drop type JsonArray restrict";
+         
+         executeDDL( derbyConn, createString );
+     }
+Index: derby-10.14.2.0/java/testing/org/apache/derbyTesting/functionTests/tests/lang/SimpleJsonTest.java
+===================================================================
+--- derby-10.14.2.0.orig/java/testing/org/apache/derbyTesting/functionTests/tests/lang/SimpleJsonTest.java
++++ derby-10.14.2.0/java/testing/org/apache/derbyTesting/functionTests/tests/lang/SimpleJsonTest.java
+@@ -35,8 +35,8 @@ import org.apache.derbyTesting.junit.Sup
+ import org.apache.derbyTesting.junit.TestConfiguration;
+ import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
+ 
+-import org.json.simple.JSONArray;
+-import org.json.simple.JSONObject;
++import @JSON_SIMPLE@.JsonArray;
++import @JSON_SIMPLE@.JsonObject;
+ 
+ /**
+  * <p>
+@@ -231,7 +231,7 @@ public class SimpleJsonTest extends Base
+         goodStatement
+             (
+              conn,
+-             "create function prettyPrint( doc JSONArray ) returns varchar( 32672 )\n" +
++             "create function prettyPrint( doc JsonArray ) returns varchar( 32672 )\n" +
+              "language java parameter style java no sql\n" +
+              "external name '" + getClass().getName() + ".prettyPrint'\n"
+              );
+@@ -450,7 +450,7 @@ public class SimpleJsonTest extends Base
+         goodStatement
+             (
+              conn,
+-             "create function prettyPrint( doc JSONArray ) returns varchar( 32672 )\n" +
++             "create function prettyPrint( doc JsonArray ) returns varchar( 32672 )\n" +
+              "language java parameter style java no sql\n" +
+              "external name 'org.apache.derbyTesting.functionTests.tests.lang.SimpleJsonTest.prettyPrint'\n"
+              );
+@@ -546,7 +546,7 @@ public class SimpleJsonTest extends Base
+         goodStatement
+             (
+              conn,
+-             "create function thermostatReadings( jsonDocument JSONArray )\n" +
++             "create function thermostatReadings( jsonDocument JsonArray )\n" +
+              "returns table\n" +
+              "(\n" +
+              "\"id\" int,\n" +
+@@ -734,7 +734,7 @@ public class SimpleJsonTest extends Base
+         goodStatement
+             (
+              conn,
+-             "create function f_" + datatype + "( jsonArray JSONArray )\n" +
++             "create function f_" + datatype + "( jsonArray JsonArray )\n" +
+              "returns table\n" +
+              "(\n" +
+              "  str_col varchar( 10 ),\n" +
+@@ -792,10 +792,10 @@ public class SimpleJsonTest extends Base
+ 
+     /**
+      * <p>
+-     * Pretty-print a JSONArray.
++     * Pretty-print a JsonArray.
+      * </p>
+      */
+-    public static String prettyPrint( JSONArray array )
++    public static String prettyPrint( JsonArray array )
+     {
+         StringBuilder   buffer = new StringBuilder();
+ 
+@@ -808,7 +808,7 @@ public class SimpleJsonTest extends Base
+         (
+          StringBuilder buffer,
+          int indentLevel,
+-         JSONArray array
++         JsonArray array
+          )
+     {
+         buffer.append( "[" );
+@@ -830,7 +830,7 @@ public class SimpleJsonTest extends Base
+         (
+          StringBuilder buffer,
+          int indentLevel,
+-         JSONObject obj
++         JsonObject obj
+          )
+     {
+         buffer.append( "{" );
+@@ -862,10 +862,10 @@ public class SimpleJsonTest extends Base
+          )
+     {
+         if ( obj == null ) { buffer.append( "null" ); }
+-        else if ( obj instanceof JSONArray )
+-        { prettyPrintArray( buffer, indentLevel, (JSONArray) obj ); }
+-        else if ( obj instanceof JSONObject )
+-        { prettyPrintObject( buffer, indentLevel, (JSONObject) obj ); }
++        else if ( obj instanceof JsonArray )
++        { prettyPrintArray( buffer, indentLevel, (JsonArray) obj ); }
++        else if ( obj instanceof JsonObject )
++        { prettyPrintObject( buffer, indentLevel, (JsonObject) obj ); }
+         else if ( (obj instanceof Number) || (obj instanceof Boolean) )
+         { buffer.append( obj.toString() ); }
+         else { buffer.append( doubleQuote( obj.toString() ) ); }
+Index: derby-10.14.2.0/java/testing/org/apache/derbyTesting/junit/JDBC.java
+===================================================================
+--- derby-10.14.2.0.orig/java/testing/org/apache/derbyTesting/junit/JDBC.java
++++ derby-10.14.2.0/java/testing/org/apache/derbyTesting/junit/JDBC.java
+@@ -128,7 +128,7 @@ public class JDBC {
+ 
+     /** Is the json-simple core jar file on the classpath */
+     public  static  final   boolean HAVE_JSON_SIMPLE =
+-        haveClass( "org.json.simple.JSONArray" );
++        haveClass( "@JSON_SIMPLE@.JsonArray" );
+ 
+     /**
+      * Does java.sql.ResultSet implement java.lang.AutoCloseable?

@@ -1,0 +1,81 @@
+derby (10.14.2.0-2) unstable; urgency=medium
+
+  * Team upload
+
+  [ Gilles Filippini ]
+  * Tentative support for json-simple >= 3 (Closes: #968937)
+
+  [ tony mancill ]
+  * Use debhelper-compat 13
+  * Set "Rules-Requires-Root: no" in debian/control
+  * Use https URLs in copyright, control and watch
+  * Bump Standards-Version to 4.5.0
+  * Override dh_auto_test in debian/rules, not dh_test
+  * Update debian/rules to add json-simple during tests
+
+ -- tony mancill <tmancill@debian.org>  Sat, 05 Sep 2020 11:57:12 -0700
+
+derby (10.14.2.0-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream release
+  * Fixed the build failure with Java 10 (Closes: #897472)
+  * Standards-Version updated to 4.1.4
+  * Switch to debhelper level 11
+  * Use salsa.debian.org Vcs-* URLs
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Wed, 16 May 2018 18:01:03 +0200
+
+derby (10.14.1.0-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream release
+  * Standards-Version updated to 4.1.1
+  * Switch to debhelper level 10
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Tue, 14 Nov 2017 10:46:36 +0100
+
+derby (10.13.1.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * Add JavaSE and J2EE API package-list files to the source package
+    so they are available at build time (instead of downloading them
+    from Oracle).  Add patch 03 to create a local.properties file to
+    refer the build.xml to these local resources. (Closes: #848389)
+  * Update debian/README.source to document creation of package-list
+    files.
+
+ -- tony mancill <tmancill@debian.org>  Sun, 18 Dec 2016 17:13:07 -0800
+
+derby (10.13.1.1-1) unstable; urgency=medium
+
+  * New upstream release
+    - New dependency on liblucene4.10-java and libjson-simple-java
+  * Build with JavaCC 4 instead of 5
+  * Moved the package to Git
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Thu, 24 Nov 2016 14:50:11 +0100
+
+derby (10.10.2.0-2) unstable; urgency=medium
+
+  * Transition to the Servlet API 3.1
+  * Standards-Version updated to 3.9.8 (no changes)
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Fri, 03 Jun 2016 21:51:49 +0200
+
+derby (10.10.2.0-1) unstable; urgency=medium
+
+  * New upstream release
+    - Refreshed the patches
+  * Use XZ compression for the upstream tarball
+  * Standards-Version updated to 3.9.5 (no changes)
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Sat, 26 Apr 2014 19:27:30 +0200
+
+derby (10.10.1.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #617425)
+    Package developed with the help of Tim Booth <tbooth@ceh.ac.uk>,
+    Zied Abid <ziedabid@free.fr> and Emmanuel Bourg <ebourg@apache.org>
+
+ -- Emmanuel Bourg <ebourg@apache.org>  Wed, 12 Jun 2013 15:26:34 +0200

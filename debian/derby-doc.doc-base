@@ -1,0 +1,8 @@
+Document: derby-doc
+Title: Apache Derby API documentation and examples
+Author: Apache Derby developers
+Section: Programming
+
+Format: HTML
+Index: /usr/share/doc/derby-doc/index.html
+Files: /usr/share/doc/derby-doc/*

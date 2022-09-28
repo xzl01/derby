@@ -1,0 +1,2 @@
+# Ignore duplicate files in the generated Javadoc
+derby-doc binary: duplicate-files usr/share/doc/derby-doc/javadoc/*

@@ -1,0 +1,2 @@
+version=3
+https://archive.apache.org/dist/db/derby/db-derby-([\d\.]+)/db-derby-([\d\.]+)-src.tar.gz debian debian/orig-tar.sh
