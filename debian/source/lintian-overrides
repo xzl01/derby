@@ -1,1 +1,3 @@
 derby source: source-contains-prebuilt-java-object java/testing/*
+# source contains long lines
+derby source: source-is-missing [java/demo/nserverdemo/readme.html]

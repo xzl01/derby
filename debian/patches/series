@@ -3,3 +3,4 @@
 03-offline-package-list.patch
 04-java10-compatibility.patch
 json-simple-3.patch
+06-CVE-2022-46337.patch
